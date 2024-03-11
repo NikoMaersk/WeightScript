@@ -1,6 +1,13 @@
 import RPi.GPIO as GPIO
 from hx711 import HX711
+from datetime import datetime
 
+def get_date_and_time():
+    now = datetime.now()
+    global dt_string
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+get_date_and_time()
+print(dt_string)
 try:
     GPIO.setmode(GPIO.BCM)
     hx = HX711(dout_pin=13, pd_sck_pin=6)
