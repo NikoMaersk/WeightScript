@@ -1,13 +1,23 @@
 import RPi.GPIO as GPIO
+import requests
 from hx711 import HX711
 from datetime import datetime
 from websocket import create_connection
+
 import json
 
 
 def init():
     GPIO.setmode(GPIO.BCM)
 
+def get_geolocation():
+    try:
+        respone = requests.get('http://ip-api.com/json/')
+        geodata = respone.json()
+        return geodata['city']
+    
+    except Exception as e:
+        return "Failed to get geo data"
 
 def get_date_and_time():
     now = datetime.now()
@@ -17,7 +27,7 @@ def get_date_and_time():
 
 def connect():
     global ws
-    ws = create_connection("ws://10.176.69.180:7070")
+    ws = create_connection("ws://192.168.9.119:7070")
     print("Connection established")
 
 
@@ -35,7 +45,7 @@ def measure_weight():
         while True:
             weight = hx.get_weight_mean(20)
             print(weight, "g") # Print the value in gram
-            message = { "date":f"{get_date_and_time()}", "weight":f"{weight}" }
+            message = { "date":f"{get_date_and_time()}", "weight":f"{weight}", "location":f"{get_geolocation()}" }
             json_as_string = json.dumps(message)
             print(json_as_string)
             ws.send(json_as_string)
