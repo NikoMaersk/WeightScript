@@ -76,7 +76,7 @@ def measure_weight():
             if CURRENT_WEIGHT > PREVIOUS_WEIGHT:
                 message = {"date": f"{get_date_and_time()}", "weight": f"{CURRENT_WEIGHT}"}
                 json_as_string = json.dumps(message)
-                print(json_as_string)
+                print("Sending data: " + json_as_string)
                 ws.send(json_as_string)
                 if get_distance():
                     GPIO.output(LED, True)
@@ -87,7 +87,6 @@ def measure_weight():
 
     finally:
         GPIO.cleanup()
-
 
 
 def main():
