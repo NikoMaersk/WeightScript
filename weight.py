@@ -20,16 +20,7 @@ def init():
     GPIO.setup(TRIG,GPIO.OUT)
     GPIO.setup(ECHO,GPIO.IN)
     GPIO.output(LED, False)
-    
 
-def get_geolocation():
-    try:
-        respone = requests.get('http://ip-api.com/json/')
-        geodata = respone.json()
-        return geodata['city']
-    
-    except Exception as e:
-        return "Failed to get geo data"
 
 def get_date_and_time():
     now = datetime.now()
@@ -38,6 +29,7 @@ def get_date_and_time():
 
 
 def get_distance():
+    LIMIT = 10
     GPIO.output(TRIG, True)
     time.sleep(0.00001)
     GPIO.output(TRIG, False)
@@ -50,12 +42,12 @@ def get_distance():
     pulse_duration = pulse_end - pulse_start
     distance = pulse_duration * 17150
     distance = round(distance, 2)
-    return distance
-
+    return distance < LIMIT
+    
 
 def connect():
     global ws
-    ws = create_connection("ws://10.176.69.180:8080")
+    ws = create_connection("ws://10.176.69.178:7070")
     print("Connection established")
 
 
@@ -73,11 +65,13 @@ def measure_weight():
         while True:
             weight = hx.get_weight_mean(20)
             print(weight, "g") # Print the value in gram
-            message = { "date":f"{get_date_and_time()}", "weight":f"{weight}", "location":f"{get_geolocation()}" }
+            message = { "date":f"{get_date_and_time()}", "weight":f"{weight}" }
             json_as_string = json.dumps(message)
             print(json_as_string)
             ws.send(json_as_string)
-            time.sleep(10)
+            if (get_distance()):
+                GPIO.output(LED, True)
+            time.sleep(1)
     finally:
         GPIO.cleanup()
 
