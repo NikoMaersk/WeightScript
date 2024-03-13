@@ -3,17 +3,22 @@ import requests
 from hx711 import HX711
 from datetime import datetime
 from websocket import create_connection
-from time import sleep
-
+import time
 import json
 
 
 def init():
     global LED
+    global TRIG
+    global ECHO
     LED = 16
+    TRIG = 20
+    ECHO = 21
 
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(LED, GPIO.OUT)
+    GPIO.setup(TRIG,GPIO.OUT)
+    GPIO.setup(ECHO,GPIO.IN)
     GPIO.output(LED, False)
     
 
@@ -32,6 +37,22 @@ def get_date_and_time():
     return now.strftime("%d/%m/%Y %H:%M:%S")
 
 
+def get_distance():
+    GPIO.output(TRIG, True)
+    time.sleep(0.00001)
+    GPIO.output(TRIG, False)
+
+    while GPIO.input(ECHO)==0:
+        pulse_start = time.time()
+
+    while GPIO.input(ECHO)==1:
+        pulse_end = time.time() 
+    pulse_duration = pulse_end - pulse_start
+    distance = pulse_duration * 17150
+    distance = round(distance, 2)
+    return distance
+
+
 def connect():
     global ws
     ws = create_connection("ws://10.176.69.180:8080")
@@ -40,7 +61,7 @@ def connect():
 
 def measure_weight():
     try:
-        hx = HX711(dout_pin = 13, pd_sck_pin = 6)
+        hx = HX711(dout_pin = 6, pd_sck_pin = 5)
         print("Please don't place anything on the weight.")
         hx.zero() # Reset the hx711
         initial_reading = hx.get_raw_data_mean() # Get value without weight
@@ -56,6 +77,7 @@ def measure_weight():
             json_as_string = json.dumps(message)
             print(json_as_string)
             ws.send(json_as_string)
+            time.sleep(10)
     finally:
         GPIO.cleanup()
 
