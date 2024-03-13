@@ -1,5 +1,4 @@
 import RPi.GPIO as GPIO
-import requests
 from hx711 import HX711
 from datetime import datetime
 from websocket import create_connection
@@ -7,10 +6,16 @@ import time
 import json
 
 
+CURRENT_WEIGHT = 0
+
 def init():
     global LED
     global TRIG
     global ECHO
+    global CURRENT_WEIGHT
+    global PREVIOUS_WEIGHT
+    CURRENT_WEIGHT = 0
+    PREVIOUS_WEIGHT = 0
     LED = 16
     TRIG = 20
     ECHO = 21
@@ -29,7 +34,7 @@ def get_date_and_time():
 
 
 def get_distance():
-    LIMIT = 10
+    LIMIT = 5
     GPIO.output(TRIG, True)
     time.sleep(0.00001)
     GPIO.output(TRIG, False)
@@ -52,28 +57,37 @@ def connect():
 
 
 def measure_weight():
+    global CURRENT_WEIGHT
+    global PREVIOUS_WEIGHT
     try:
-        hx = HX711(dout_pin = 6, pd_sck_pin = 5)
+        hx = HX711(dout_pin=6, pd_sck_pin=5)
         print("Please don't place anything on the weight.")
-        hx.zero() # Reset the hx711
-        initial_reading = hx.get_raw_data_mean() # Get value without weight
+        hx.zero()  # Reset the hx711
+        initial_reading = hx.get_raw_data_mean()  # Get value without weight
         input("Put a known weight on the weight and press enter.")
         cali_reading = hx.get_data_mean()
         known_weight = input("How much weight did you put on in gram? ")
-        hx.set_scale_ratio(cali_reading/float(known_weight)) # Set the ratio to the value change for each gram
-        input ("Calibration done, press Enter to read weight values.")
+        hx.set_scale_ratio(cali_reading / float(known_weight))  # Set the ratio to the value change for each gram
+        input("Calibration done, press Enter to read weight values.")
         while True:
             weight = hx.get_weight_mean(20)
-            print(weight, "g") # Print the value in gram
-            message = { "date":f"{get_date_and_time()}", "weight":f"{weight}" }
-            json_as_string = json.dumps(message)
-            print(json_as_string)
-            ws.send(json_as_string)
-            if (get_distance()):
-                GPIO.output(LED, True)
+            print(weight, "g")  # Print the value in grams
+            
+            if CURRENT_WEIGHT > PREVIOUS_WEIGHT:
+                message = {"date": f"{get_date_and_time()}", "weight": f"{CURRENT_WEIGHT}"}
+                json_as_string = json.dumps(message)
+                print(json_as_string)
+                ws.send(json_as_string)
+                if get_distance():
+                    GPIO.output(LED, True)
+
+            PREVIOUS_WEIGHT = CURRENT_WEIGHT
+            CURRENT_WEIGHT += weight
             time.sleep(1)
+
     finally:
         GPIO.cleanup()
+
 
 
 def main():
@@ -83,7 +97,4 @@ def main():
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except:
-        GPIO.cleanup()
+    main()
