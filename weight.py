@@ -3,12 +3,19 @@ import requests
 from hx711 import HX711
 from datetime import datetime
 from websocket import create_connection
+from time import sleep
 
 import json
 
 
 def init():
+    global LED
+    LED = 16
+
     GPIO.setmode(GPIO.BCM)
+    GPIO.setup(LED, GPIO.OUT)
+    GPIO.output(LED, False)
+    
 
 def get_geolocation():
     try:
@@ -27,7 +34,7 @@ def get_date_and_time():
 
 def connect():
     global ws
-    ws = create_connection("ws://192.168.9.119:7070")
+    ws = create_connection("ws://10.176.69.180:8080")
     print("Connection established")
 
 
@@ -60,4 +67,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except:
+        GPIO.cleanup()
